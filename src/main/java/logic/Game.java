@@ -1,4 +1,7 @@
+
 package logic;
+
+import java.util.Scanner;
 
 public class Game {
 
@@ -6,12 +9,23 @@ public class Game {
     private final static int[] mediumSet = {5, 6, 7};
     private final static int[] hardSet = {5, 7, 8, 9};
 
+    private Scanner scanner = new Scanner(System.in);
+
     private int[] stones;
     private String[] binary;
     private int[] r;
+    private int[] preSet = null;
 
     public Game(int[] stones) {
         this.stones = stones;
+        preSet = stones.clone();
+        binary = new String[stones.length];
+    }
+
+    public boolean isOver() {
+        int sum = 0;
+        for (int i: stones) sum += i;
+        return sum == 0;
     }
 
     public Game(Level level) {
@@ -21,18 +35,23 @@ public class Game {
             case HARD: stones = hardSet; break;
             default: stones = new int[] {1, 2};
         }
+        preSet = stones.clone();
         binary = new String[stones.length];
     }
 
     public void show() {
-        for (int i: stones) {
-            for (int j=0; j<i; j++)
-                System.out.print("*");
+        for (int i=0; i<preSet.length; i++) {
+            for (int j=0; j<preSet[i]; j++)
+                if (j < stones[i])
+                    System.out.print("*");
+                else
+                    System.out.print(".");
             System.out.println();
         }
-
         toBinary();
-
+        for (int i=0; i<stones.length; i++) {
+            System.out.println(binary[i]);
+        }
     }
 
     private int isSafe() {
@@ -44,27 +63,37 @@ public class Game {
     }
 
     private void rightove() {
+        toBinary();
         int pos = isSafe();
         if (pos == -1) {
-
+            int maxRow = 0;
+            for (int i=1; i<stones.length; i++) {
+                if (stones[i] > stones[maxRow]) maxRow = i;
+            }
+            stones[maxRow]--;
+            System.out.println("Take 1 from " + (maxRow+1));
         } else {
             int i = 0;
             while (binary[i].charAt(pos) == '0') i++;
             StringBuilder mod = new StringBuilder(binary[i]);
             mod.setCharAt(pos, '0');
             pos++;
-            for (;pos < getMaxDigit(); pos++) {
-                if (binary[i].charAt(pos) == '0')
-                    mod.setCharAt(pos, '1');
-                else
-                    mod.setCharAt(pos, '0');
-            }
+            for (;pos < getMaxDigit(); pos++)
+                if (r[pos]%2 != 0)
+                {
+                    if (binary[i].charAt(pos) == '0')
+                        mod.setCharAt(pos, '1');
+                    else
+                        mod.setCharAt(pos, '0');
+                }
             binary[i] = mod.toString();
-            System.out.println("New binary: " + binary[i]);
+//            System.out.println("New binary: " + binary[i]);
             int newNumber = fromString(binary[i]);
+            int number = stones[i] - newNumber;
             stones[i] = newNumber;
-            System.out.println(stones[i]);
+            System.out.println("Take " + number + " from " + (i+1));
         }
+        show();
     }
 
     private int fromString(String binary) {
@@ -78,8 +107,13 @@ public class Game {
     }
 
     public static void main(String[] args) {
-        Game game = new Game(Level.HARD);
+//        Game game = new Game(Level.EASY);
+        Game game = new Game(new int[] {10, 15, 20, 25});
         game.show();
+        while (!game.isOver()) {
+            game.userMove();
+            if (!game.isOver()) game.rightove();
+        }
     }
 
     private void toBinary() {
@@ -93,21 +127,13 @@ public class Game {
             while (binary[i].length() < m)
                 binary[i] = '0' + binary[i];
 
-            System.out.println(binary[i]);
+            //System.out.println(binary[i]);
 
             for (int j=0; j<m; j++) {
                 if (binary[i].charAt(j) == '1') r[j]++;
             }
 
         }
-
-        System.out.println("=======================");
-        for (int t: r) {
-            System.out.print(t + " ");
-        }
-        System.out.println();
-
-        rightove();
     }
 
     private int getDigit(int n) {
@@ -117,6 +143,16 @@ public class Game {
             d++;
         }
         return d;
+    }
+
+    public void userMove() {
+        System.out.println("Enter row: ");
+        int row = scanner.nextInt();
+        System.out.println("Enter number: ");
+        int number = scanner.nextInt();
+
+        stones[row - 1] -= number;
+        show();
     }
 
     private int getMaxDigit() {
